@@ -1,0 +1,61 @@
+{
+    "commands": [
+        {
+            "handler": "rapid_move",
+            "variables": [
+                "X",
+                "Y",
+                "Z",
+                "E",
+                "F",
+                "H",
+                "S"
+            ],
+            "translation": "G0 %X %Y %Z %E %F %H %S"
+        },
+        {
+            "handler": "linear_move",
+            "variables": [
+                "X",
+                "Y",
+                "Z",
+                "E",
+                "F",
+                "H",
+                "S"
+            ],
+            "translation": "G1 %X %Y %Z %E %F %H %S"
+        },
+        {
+            "handler": "pause",
+            "variables": [
+                "P"
+            ],
+            "translation": "G4 %P"
+        },
+        {
+            "handler": "home",
+            "variables": [
+                "X",
+                "Y",
+                "Z"
+            ],
+            "translation": "G28 %X %Y %Z"
+        },
+        {
+            "handler": "set_milimeters",
+            "variables": [],
+            "translation": "G21"
+        },
+        {
+            "handler": "set_absolute",
+            "variables": [],
+            "translation": "G90"
+        },
+        {
+            "handler": "set_relative",
+            "variables": [],
+            "translation": "G91"
+        }
+    ]
+}
