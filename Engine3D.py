@@ -158,3 +158,22 @@ class Engine3D(object):
                 bar.next()
         bar.finish()
     
+    def NormalizeHeightMap(self, hmap):
+        minx = float("inf")
+        miny = float("inf")
+        minz = float("inf")
+        for point in hmap:
+            minx = min(point[0], minx)
+            miny = min(point[1], miny)
+            if point[2] != float("-inf"):
+                minz = min(point[2], minz)
+        offx = 0.0 - minx
+        offy = 0.0 - miny
+        offz = 0.0 - minz
+        newmap = []
+        for i in range(len(hmap)):
+            if hmap[i][2] != float("-inf"):
+                newmap.append([hmap[i][0] + offx, hmap[i][1] + offy, hmap[i][2] + offz])
+            else:
+                newmap.append([hmap[i][0] + offx, hmap[i][1] + offy, 0.0])
+        return newmap

@@ -1,0 +1,16 @@
+{
+    "model_location": "./ATX_Motherboard.stl",
+    "language_descriptor_location": "./config/lang.json",
+    "map_resolution": 960,
+    "cluster_size": 2000,
+    "image_scale": 2,
+    "round_base": 1,
+    "path_round_digits": 4,
+    "max_height_diff": 0.4,
+    "area_error_factor": 0.05,
+    "probe_diameter": 3.62,
+    "measure_height": 1.0,
+    "z_hop": 1.0,
+    "measure_interval": 0.5,
+    "default_move_type": "rapid"
+}

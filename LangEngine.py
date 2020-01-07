@@ -32,7 +32,7 @@ class LangEngine(object):
     def SaveCode(self, location):
         f = open(location, "w")
         for move in self.moves:
-            f.write(move)
+            f.write(move + "\n")
         f.flush()
         f.close()
 
