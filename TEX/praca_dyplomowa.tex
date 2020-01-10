@@ -1,0 +1,306 @@
+\documentclass[a4paper,12pt,twoside,openany]{report}
+%
+% Wzorzec pracy dyplomowej
+% J. Starzynski (jstar@iem.pw.edu.pl) na podstawie pracy dyplomowej
+% mgr. inż. Błażeja Wincenciaka
+% Wersja 0.1 - 8 października 2016
+%
+\usepackage{polski}
+\usepackage{helvet}
+\usepackage[T1]{fontenc}
+\usepackage{anyfontsize}
+\usepackage[utf8]{inputenc}
+\usepackage[pdftex]{graphicx}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage[polish]{babel}
+\usepackage{subfigure}
+\usepackage{amsfonts}
+\usepackage{verbatim}
+\usepackage{indentfirst}
+\usepackage[pdftex]{hyperref}
+
+
+% rozmaite polecenia pomocnicze
+% gdzie rysunki?
+\newcommand{\ImgPath}{.}
+
+% oznaczenie rzeczy do zrobienia/poprawienia
+\newcommand{\TODO}{\textbf{TODO}}
+
+
+% wyroznienie slow kluczowych
+\newcommand{\tech}{\texttt}
+
+% na oprawe (1.0cm - 0.7cm)*2 = 0.6cm
+% na oprawe (1.1cm - 0.7cm)*2 = 0.8cm
+%  oddsidemargin lewy margines na nieparzystych stronach
+% evensidemargin lewy margines na parzystych stronach
+\def\oprawa{1.05cm}
+\addtolength{\oddsidemargin}{\oprawa}
+\addtolength{\evensidemargin}{-\oprawa}
+
+% table span multirows
+\usepackage{multirow}
+\usepackage{enumitem}	% enumitem.pdf
+\setlist{listparindent=\parindent, parsep=\parskip} % potrzebuje enumitem
+
+%%%%%%%%%%%%%%% Dodatkowe Pakiety %%%%%%%%%%%%%%%%%
+\usepackage{prmag2017}   % definiuje komendy opieku,nrindeksu, rodzaj pracy, ...
+
+
+%%%%%%%%%%%%%%% Strona Tytułowa %%%%%%%%%%%%%%%%%
+% To trzeba wypelnic swoimi danymi
+\title{Opracowanie algorytmu do wyznaczania ścieżki sondy w pomiarach trójwymiarowych obiektów}
+
+% autor
+\author{Kamil Michał Samul}
+\nrindeksu{284931}
+
+% jeśli wykonawca jest tylko jeden, to usuwamy poniższe polecenia
+
+\opiekun{dr inż. Bartosz Chaber}
+%\konsultant{prof. Dzielny Konsultant}  % opcjonalnie
+\terminwykonania{1 lutego 2020} % data na oświadczeniu o samodzielności
+\rok{2020}
+
+
+% Podziekowanie - opcjonalne
+\podziekowania{\input{podziekowania.tex}}
+
+% To sa domyslne wartosci
+% - mozna je zmienic, jesli praca jest pisana gdzie indziej niz w ZETiIS
+% - mozna je wyrzucic jesli praca jest pisana w ZETiIS
+%\miasto{Warszawa}
+%\uczelnia{POLITECHNIKA WARSZAWSKA}
+%\wydzial{WYDZIAŁ ELEKTRYCZNY}
+%\instytut{INSTYTUT ELEKTROTECHNIKI TEORETYCZNEJ\linebreak[1] I~SYSTEMÓW INFORMACYJNO-POMIAROWYCH}
+% \zaklad{ZAKŁAD ELEKTROTECHNIKI TEORETYCZNEJ\linebreak[1] I~INFORMATYKI STOSOWANEJ}
+%\kierunekstudiow{INFORMATYKA}
+
+% domyslnie praca jest inzynierska, ale po odkomentowaniu ponizszej linii zrobi sie magisterska
+%\pracamagisterska
+%%% koniec od P.W
+
+\opinie{%
+  \input{opiniaopiekuna.tex}
+  \newpage
+  \input{recenzja.tex}
+}
+
+\streszczenia{
+  \input{streszczenia.tex}
+}
+
+\begin{document}
+\maketitle
+
+%-----------------
+% Wstęp
+%-----------------
+\chapter{Wstęp}
+
+  \section{Cel i zakres pracy}
+    \subsection{Cel pracy}
+      Celem pracy jest opracowanie algorytmu wyznaczającego ścieżkę sondy pola bliskiego, 
+      która pozwoli na pomiar obiektów trójwymiarowych o zróżnicowanej geometrii.
+      Aktualne rozwiązanie pozwala jedynie na badanie obiektów będących jedynie płaską 
+      płytką bez dodatkowych elementów zmieniających wysokość obiektu.
+      Problemem, który staram się rozwiązać jest 
+      \begin{itemize}
+        \item zniesienie wymogu kształtu badanego obiektu
+      \end{itemize}
+      W przypadku pomiaru pola bliskiego elementy badane muszą być włączone w ich normalnym stanie
+      podczas całego procesu ich badania. Z tego powodu usunięcie elementów, które zmieniają geometrię
+      badanego obiektu w celu zachowania tradycyjnej ścieżki sondy jest nie możliwe.
+      Takie ograniczenie bardzo mocno zawęża użyteczność samego skanera, co staram się rozwiązać poprzez analizę
+      trójwymiarowego modelu i na jego podstawie wyznaczyć ścieżkę sondy tak, by mogła przeprowadzić pomiary
+      na zdefiniowanej przez użytkownika odległości od obiektu.
+
+    \subsection{Zakres pracy}
+      Zakres pracy obejmuje analizę postawionego problemu oraz dobór odpowiednich technologii pozwalających 
+      na optymalne (pod względem czasu realizacji oraz wydajności algorytmu) rozwiązanie problemu.
+      \\
+      Po dobraniu technologii w której zaimplementowany zostanie algorytm, należy zaplanować 
+      następujące komponenty rozwiązania:
+      \begin{itemize}
+        \item analiza i transformacja obiektu 3D opisującego badany przedmiot
+        \item wyznaczanie ścieżki na podstawie otrzymanego w poprzednim kroku obiektu 3D
+        \item translacja otrzymanego rozwiązania na język zrozumiały przez skaner
+        \item (opcjonalnie) wizualizacja poszczególnych etapów działania algorytmu
+      \end{itemize}
+      Po zakończeniu procesu tworzenia algorytmu, należy przeprowadzić fazę testów oraz jako podsumowanie, 
+      przeanalizować otrzymane rezultaty wraz z wyciągnięciem z nich wniosków.
+  
+  \section{Opis Architektury}
+    Omawiany algorytm posiada bardzo wyraźne komponenty. Biorąc pod uwagę wymagania 
+    zdecydowałem się na wydzielenie z całości trzech elementów. 
+    \begin{itemize}
+      \item Analiza danych
+      \item Logika algorytmu
+      \item Zapis wyników
+    \end{itemize}
+    Podział problemu na pod problemy, które są mniej obszerne pod względem czasu wymaganego na analizę, 
+    stworzenie kodu oraz testy, pozwala mi na ułatwienie procesu tworzenia oprogramowania.
+    Mając do dyspozycji trzy samodzielnie funkcjonujące elementy aplikacji, jestem w stanie 
+    w końcowej fazie projektu połączyć je ze sobą mając pewność, że każde z osobna poprawnie 
+    wykonuje swoje zadanie. Dodatkowo takie założenie "modularnej" budowy pozwala mi przyjąć, 
+    że w przypadku zmieniających się wymagań podczas rozwoju aplikacji, będę mógł w sposób 
+    wymagający minimalnego nakładu pracy dodać lub zmodyfikować komponenty tak, by zapewnić nową funkcjonalność.
+
+    \begin{figure}[!htbp]
+      \begin{center}
+    \centering
+    \includegraphics[scale=0.4]{\ImgPath/rys/architektura.png}
+    \end{center}
+      \caption{Schemat architektury algorytmu}
+      \label{schematArchitektury}
+    \end{figure}
+
+\chapter{Technologie i narzędzia}
+  \section{Język programowania}
+    Python jest niezwykle popularnym językiem wysokiego poziomu.
+    Jest to język interpretowany. Oznacza to, że kod nie wymaga procesu kompilacji 
+    do działania lecz każda jego instrukcja jest na bieżąco wykonywana przez wirtualną maszynę (pvm).
+    Zdecydowałem się na ten język programowania ze względu na szerokie wsparcie w postaci 
+    zewnętrznych bibliotek oraz możliwość przenoszenia kodu bez potrzeby ponownej jego kompilacji 
+    w przypadku zmiany architektury systemu operacyjnego. Pierwszy powód zawdzięczam ogromnej 
+    popularności Python-a oraz bardzo aktywnej społeczności, która udziela się w rozwój środowiska.
+    Drugi z kolei jest efektem tego, że Python jest językiem interpretowanym. Oznacza to, że wszędzie tam 
+    gdzie istnieje interpreter tego języka, jestem w stanie uruchomić przygotowany przeze mnie kod
+    (po wcześniejszym zainstalowaniu wymaganych bibliotek).
+
+  \section{Edytor tekstu}
+    W przypadku edytora tekstu zdecydowałem się na użycie programu 
+    Visual Studio Code. Jest to darmowy program o otwartym kodzie źródłowym, który poza edycją tekstu 
+    pozwala także na przeprowadzanie procesu debugging-u (procesu znajdowania i rozwiązywania błędów w kodzie),
+    tworzenie zadań (zestaw instrukcji wykonywanych podczas egzekucji zadania) czy wspomaganie pisania kodu 
+    (kolorowanie składni, szablony często używanych struktur, wskazywanie potencjalnych błędów).
+    Dodatkowo ten edytor tekstu pozwala na instalację wtyczek stworzonych przez społeczność, 
+    co pozwala na dalsze ułatwienie pisania kodu. Jak można dostrzec w tabeli \ref{srodowiskoProcenty},
+    Visual Studio Code jest aktualnie najbardziej popularnym środowiskiem tworzenia oprogramowania, 
+    dzięki czemu istnieje bardzo duża baza wiedzy na temat problemów jakie można napotkać podczas
+    korzystania z tego programu.
+    \begin{figure}[!htbp]
+      \begin{center}
+        \centering
+          \begin{tabular}{|c|c|}
+            \hline
+            Nazwa Programu & Procent Deklarujących \\ \hline
+            Visual Studio Code & 50.7\% \\ \hline
+            Visual Studio & 31.5\% \\ \hline
+            Notepad++ & 30.5\% \\ \hline
+            IntelliJ & 25.4\% \\ \hline
+            Vim & 25.4\% \\ \hline
+            Sublime Text & 23.4\% \\ \hline
+            Android Studio & 16.9\% \\ \hline
+            Eclipse & 14.4\% \\ \hline
+            PyCharm & 13.4\% \\ \hline
+            Atom & 13.3\% \\
+            \hline
+          \end{tabular}
+      \end{center}
+      \caption{Procent developerów deklarujących korzystanie z danego środowiska w 2019r. \cite{StackInsight}}
+      \label{srodowiskoProcenty}
+    \end{figure}
+
+
+\chapter{Komponenty algorytmu}
+
+  \section{Analiza danych}
+    \subsection{Opis}
+      Analiza danych jest odpowiedzialna za przetworzenie wejściowego 
+      modelu na postać gotową do użycia przez komponenty wykonujące dalsze obliczenia.
+      Podczas tworzenia tego komponentu zdecydowałem się użyć formatu STL jako obiektu wejściowego.
+      Jest to sprawdzony format zapisu danych obecny od 1987 roku. 
+      Jego prosta konstrukcja (zarówno zapis binarny jak i ASCII)
+      pozwala na szybkie zrozumienie zawartości pliku (w przypadku wersji ASCII), 
+      co pozwala na łatwe oraz szybkie wyszukiwanie błędów
+      podczas tworzenia mechanizmu wczytywania. Dodatkowo format ten jest 
+      szeroko wspierany przez społeczność zajmującą się drukiem 3D,
+      co objawia się obfitą ilością gotowych modeli, które w przyszłości mogą 
+      zostać użyte do analizy popularnych obwodów.\\
+      Jako wyjściowy format danych do dalszej pracy zdecydowałem się na mapę wysokości.
+      Charakterystyka analizy badanych przedmiotów skupia się na rzutowaniu prostokątnym
+      (dokładniej rzut z góry). Dzięki tej informacji mogłem stwierdzić, 
+      że dane które niosą ze sobą wartość merytoryczną dla wyliczania ścieżki,
+      to wysokości obiektu dla odpowiadających im punktów na płaszczyźnie poziomej.
+      Efektem takiej analizy są dane, które w łatwy sposób mogą być dalej używane oraz 
+      zajmują mniej pamięci. Dodatkowo w naturalny sposób opisują one obraz obiektu 
+      z punktu widzenia sondy, co pozwala na łatwe stworzenie wizualizacji procesu tworzenia ścieżki.
+    
+    \subsection{Lista kroków}
+      \begin{itemize}
+        \item ładowanie modelu 3D
+        \item generowanie poligonów
+        \item wyliczanie płaszczyzn dla poligonów
+        \item wyliczanie rozmiaru badanego obiektu
+        \item tworzenie klastrów
+        \item przypisywanie poligonów do klastrów
+        \item wyliczanie mapy wysokości (przy zdefiniowanej rozdzielczości, dla każdego punktu w przestrzeni należy wyliczyć jego wysokość)
+        \item normalizacja mapy wysokości
+      \end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{Bibliografia}
+\bibitem{StackInsight}{https://insights.stackoverflow.com/survey/2019}
+
+\end{thebibliography}
+
+\zakonczenie
+
+\end{document}
