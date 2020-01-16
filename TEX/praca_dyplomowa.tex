@@ -5,6 +5,7 @@
 % mgr. inż. Błażeja Wincenciaka
 % Wersja 0.1 - 8 października 2016
 %
+\usepackage{amssymb}
 \usepackage{polski}
 \usepackage{helvet}
 \usepackage[T1]{fontenc}
@@ -563,10 +564,267 @@ def ClusterifyPolygons(self):
         bar.next()
     bar.finish()
       \end{lstlisting}
+      Zadaniem powyższego kodu jest przypisanie trójkątów (poligonów) do klastrów tak by przy późniejszym ich 
+      przeszukiwaniu można było odnosić się jedynie do tych najbardziej prawdopodobnych. Z wstępnych testów 
+      podczas tworzenia tego rozwiązania udało mi się uzyskać bardzo duże przyrosty wydajności. Przy bardzo 
+      szczegółowych modelach (setki tysięcy poligonów) wprowadzenie tej zmiany pozwoliło na wykonanie obliczeń 
+      w kilkaset sekund zamiast kilkudziesięciu minut lub nawet kilku godzin.
 
+    \subsection{ImageEngine}
+      Mając gotowy moduł wyliczający mapę wysokości na podstawie modelu 3D potrzebowałem metody na wizualizację 
+      tych wyników. Jako że mapa ta jest dwuwymiarowym obiektem zawierającym różne wartości wysokości, możliwe 
+      jest przedstawienie jej na obrazie. W takim wypadku koordynaty na płaszczyźnie przedstawione mogą być za pomocą 
+      pikseli, a ich wartość za pomocą kolorów. Biorąc pod uwagę, że każdy punkt ma tylko jedną wartość zdecydowałem się 
+      na obraz w odcieniach szarości. W takim przedstawieniu wysokości kolorem czarnym zaznaczone są punkty najwyższe, zaś 
+      białym najniższe. Taki sposób przedstawienia danych jest bardzo intuicyjny oraz czytelny, dzięki czemu bardzo szybko 
+      jestem w stanie znaleźć na obrazie odstępstwa od rzeczywistości.
+      \begin{figure}[!htbp]
+        \begin{center}
+      \centering
+      \includegraphics[scale=0.2]{\ImgPath/rys/ATX_Motherboard_map_visualization.png}
+      \end{center}
+        \caption{Wizualizacja mapy wysokości za pomocą modułu ImageEngine}
+        \label{ATXhmap}
+      \end{figure}
+      \clearpage
 
+    \subsection{QuadTree}
+      Moduł QuadTree odpowiada za realizację budowy i analizy drzewa czwórkowego zbudowanego na podstawie dostarczonej przez 
+      Engine3D mapy wysokości. Jest to implementacja drzewa czwórkowego obszaru gdzie warunek stopu zdefiniowany jest jako: 
+      \begin{itemize}
+        \item Ilość punktów najwyższych stanowi $\pi$/4 całego obszaru (możliwe do modyfikacji przez parametr w pliku konfiguracyjnym)
+        \item Szerokość/wysokość (współrzędne X i Y) mają wymiar nie mniejszy niż trzykrotność średnicy sondy
+      \end{itemize}
+      Pierwszy z warunków powstał by prawidłowo obsługiwać elementy obiektu opisane jako koło na mapie wysokości. W przypadku braku tego warunku, 
+      elementy, które nie miały by kształtu prostokąta, mogły by być dzielone aż do natrafienia drugiego warunku stopu. Ten warunek może zostać 
+      zmodyfikowany tak by dać programowi większą lub mniejszą możliwość błędu aż do uzyskania wartości skrajnych.\\
+      Drugi z warunków opisuje nam przypadek gdzie kolejny podział mógł by spowodować brak możliwości wyznaczenia bezpiecznego punktu opuszczenia 
+      się sondy co zakończyło by się pominięciem tej gałęzi drzewa.\\
+      Mając gotowe wypełnione drzewo czwórkowe należy przeprowadzić jego analizę. Podczas przechodzenia drzewa interesującymi fragmentami są jedynie liście, 
+      stąd kod realizujący wyszukiwanie obszarów w drzewie zapisany jest tak.
+      \begin{lstlisting}
+def WalkForArea(self, path):
+  if self.node_type == self.LEAF:
+      return [{
+          "area": self.area,
+          "path": path
+      }]
+  areas = []
+  areas += self.children[0].WalkForArea(path + [0])
+  areas += self.children[1].WalkForArea(path + [1])
+  areas += self.children[2].WalkForArea(path + [2])
+  areas += self.children[3].WalkForArea(path + [3])
+  return areas
+      \end{lstlisting}
+      Efektem działania takiej funkcji jest lista słowników zawierająca obszary z każdego liścia drzewa. Po uzyskaniu wyników ponownie wykorzystałem 
+      moduł ImageEngine (wprowadzając do niego obsługę generowania drzewa na obrazie mapy wysokości). Pozwolił mi on na wizualizację drzewa na obrazie, 
+      co znacząco ułatwiło mi weryfikację poprawności jego działania i naprawę kilku pomniejszych błędów.
+      \begin{figure}[!htbp]
+        \begin{center}
+      \centering
+      \includegraphics[scale=0.2]{\ImgPath/rys/ATX_Motherboard_tree_visualization.png}
+      \end{center}
+        \caption{Wizualizacja drzewa czwórkowego za pomocą modułu ImageEngine}
+        \label{ATXtmap}
+      \end{figure}
+      \clearpage
 
+    \subsection{PathingEngine}
+      Ostatnim modułem koniecznym do implementacji podczas tworzenia tego programu był PathingEngine. Jego głównym zadaniem jest wyznaczanie ścieżek oraz 
+      przejść między nimi dla każdego z obszarów powstałych z liści drzewa czwórkowego. W przypadku tego elementu kluczową rolą było bezpieczne wyznaczenie 
+      trasy dla sondy podczas przemieszczania się między badanymi obszarami. Zdecydowałem się na bardzo bezpieczne rozwiązanie, czyli podnoszenie sondy na 
+      bezpieczną wysokość nad całym obiektem i dopiero na tej wysokości przemieszczenie jej do kolejnego obszaru. Nie jest to metoda, która jest najbardziej 
+      efektywna pod względem optymalizacji czasu pracy urządzenia, ale pozwala na ochronę skanera i badanego obiektu na wypadek jego przesunięcia się względem 
+      pozycji wyjściowej. Dodatkowo biorąc pod uwagę czas przeprowadzania każdego z pomiarów (kilka sekund na pomiar, zależnie od konfiguracji nawet kilkadziesiąt 
+      pomiarów), to ilość czasu tracona na wykonanie dłuższego ruchu jest wielokrotnie mniejsza i taki błąd można dopuścić, szczególnie gdy daje nam on inne korzyści.\\
+      Tak wyznaczone ruchy przekazywane są do modułu LangEngine, by tam finalnie zostały zapisane w formie G-code. W celu analizy poprawności działania tej części 
+      kodu, zdecydowałem się na wczytanie wyjściowego wyniku do biblioteki matplotlib i wygenerowanie wykresu pokazującego obszar pokryty przez ruchy sondy nad obiektem.
+      \noindent
+      \begin{figure}[!htbp]
+        \begin{center}
+      \centering
+      \includegraphics[scale=0.3]{\ImgPath/rys/atx_real_side_mpl.png}
+      \end{center}
+        \caption{Wizualizacja obszaru pokrycia przez ruchy sondy badanego obiektu}
+        \label{ATXrmap}
+      \end{figure}
+      \clearpage
 
+    \subsection{Wczytywanie konfiguracji}
+      Ten etap polegał na utworzeniu specjalnego pliku konfiguracyjnego, zawierającego wszystkie wymagane parametry. Do obsługi tego pliku dodana została funkcja 
+      wczytująca i analizująca go tak, by kolejne komponenty mogły odczytywać zawarte w nim dane. Podczas tego etapu nastąpiła refaktoryzacja głównej funkcji 
+      programu, by zachować wysoki standard czystości kodu.
+
+  \section{Konteneryzacja}
+    Posiadając gotową aplikację przystąpiłem do realizacji zadania konteneryzacji. Polegała ona na utworzeniu pliku Dockerfile opisującego kontener oraz 
+    utworzenia skryptu uruchamiającego by zmniejszyć wkład pracy i wymaganą wiedzę od użytkownika końcowego.\\
+    Proces budowy Dockerfile rozpocząłem od analizy wymagań programu pod kątem bibliotek i oprogramowania. Biblioteki python-owe potrzebne do uruchomienia 
+    programu to:
+    \begin{itemize}
+      \item numpy
+      \item numpy-stl
+      \item shapely
+      \item progress
+      \item Pillow
+    \end{itemize}D
+    Dodatkowym wymaganie aplikacji jest instalacja programu geos. Wszystko to realizowane jest przez uruchomienie aplikacji w kontenerze i nie wymaga żadnego 
+    zaangażowania ze strony użytkownika. Poniżej przedstawiony jest plik Dockerfile.
+    \begin{lstlisting}
+FROM ubuntu:latest
+
+# Setup python in container
+RUN apt update
+RUN apt -y install python3
+RUN apt -y install python3-pip
+
+# Download required library
+RUN apt -y install libgeos++-dev
+
+# Download required python imports
+RUN pip3 install numpy
+RUN pip3 install numpy-stl
+RUN pip3 install shapely
+RUN pip3 install progress
+RUN pip3 install Pillow
+
+# Create directory and copy source files
+RUN mkdir /pytracer
+COPY ./main.py /pytracer/main.py
+COPY ./LangEngine.py /pytracer/LangEngine.py
+COPY ./Engine3D.py /pytracer/Engine3D.py
+COPY ./ImageEngine.py /pytracer/ImageEngine.py
+COPY ./PathingEngine.py /pytracer/PathingEngine.py
+COPY ./QuadTree.py /pytracer/QuadTree.py
+
+# Execute script
+WORKDIR /pytracer
+CMD [ "python3", "main.py" ]
+    \end{lstlisting}
+    W celu utrwalenia danych zapisywanych przez program, dołączone zostały wolumeny (ang. volume). Pozwala to na połączenie systemu plików maszyny gospodarza 
+    oraz kontenera. Bez wykorzystania wolumenów nie istniała by możliwość zapisu danych bezpośrednio do systemu plików maszyny gospodarza.
+
+  \section{Diagramy UML}
+    \subsection{Diagram klas}
+      \begin{figure}[!htbp]
+        \begin{center}
+      \centering
+      \includegraphics[scale=0.4]{\ImgPath/rys/classes_PyTracer.png}
+      \end{center}
+        \caption{Diagram klas dla omawianej aplikacji}
+        \label{classDiag}
+      \end{figure}
+      \clearpage
+    
+    \subsection{Diagram pakietów}
+      \begin{figure}[!htbp]
+        \begin{center}
+      \centering
+      \includegraphics[scale=0.4]{\ImgPath/rys/packages_PyTracer.png}
+      \end{center}
+        \caption{Diagram pakietów dla omawianej aplikacji}
+        \label{packageDiag}
+      \end{figure}
+      \clearpage
+
+\chapter{Testowanie aplikacji}
+  \section{Opis}
+    Testy aplikacji przeprowadzane były wieloetapowo:
+    \begin{itemize}
+      \item Analiza wygenerowanych obrazów
+      \item Analiza poprawności składni G-code
+      \item Analiza wizualna wygenerowanych ruchów sondy
+      \item Testy na fizycznym urządzeniu
+    \end{itemize}
+    Jako testowy model 3D wykorzystany został wcześniej opisywany model płyty głównej ATX. Jednak by zbadać dokładniej działanie programu został on przeanalizowany 
+    dla dwóch ustawień pliku konfiguracyjnego:
+    \begin{itemize}
+      \item Rzeczywisty rozmiar sondy
+      \item Sonda o bardzo małej średnicy
+    \end{itemize}
+    Taki zestaw pozwolił mi na dokładniejsze zbadanie zachowania generacji drzewa czwórkowego, ze względu na znaczne przesunięcie granicy dla drugiego warunku 
+    stopu, który zależny jest od średnicy sondy.\\
+    Z powodu wcześniejszych odniesień do ilustracji przypadku sondy rzeczywistych rozmiarów, w tym rozdziale ograniczę się do zamieszczenia infografik jedynie dla 
+    drugiego przypadku.
+
+  \section{Analiza wygenerowanych obrazów}
+    Program podczas swojej pracy generuje dwa obrazy.\\
+    Pierwszy z nich tworzy mapę wysokości, która powinna pokrywać się z badanym obiektem. Analizując otrzymaną mapę stwierdzam, że obraz ten zawiera wszystkie potrzebne 
+    informacje na temat kształtu obiektu oraz zawiera odpowiednio wysoki poziom szczegółowości, by umożliwić jednoznaczne wyznaczenie wysokości w badanych obszarach. \\
+    Drugi obraz zawiera wizualizację drzewa czwórkowego. Zielonymi liniami oddzielone są od siebie kolejne liście tego drzewa. Na załączonym rysunku znaleźć można zróżnicowanej 
+    wielkości liście zawierające głównie obszary o największej wysokości. Podział drzewa wygląda prawidłowo, na każdym liściu można wyznaczyć maksymalną wysokość oraz liście 
+    są zróżnicowanych rozmiarów, co wskazuje na poprawne działanie warunku stopu.\\
+    \begin{figure}[!htbp]
+      \begin{center}
+    \centering
+    \includegraphics[scale=0.2]{\ImgPath/rys/ATX_Motherboard_EXTRA_SMALL_SENSOR_tree_visualization.png}
+    \end{center}
+      \caption{Wizualizacja drzewa czwórkowego dla sondy o bardzo małej średnicy}
+      \label{ATXStmap}
+    \end{figure}
+    \clearpage
+  \section{Analiza poprawności składni G-code}
+    Wyjściowy plik w formacie G-code został przeanalizowany pod kątem użycia jedynie prawidłowych kodów oraz prawidłowego zapisu parametrów. Lista dozwolonych kodów: 
+    \begin{itemize}
+      \item G90
+      \item G21
+      \item G0
+      \item G1
+      \item G4
+    \end{itemize}
+    Prawidłowo zdefiniowane parametry są oddzielone od siebie białym znakiem i mają strukturę <parametr><wartość> przykład: \\
+    "G0 X6.4808 Y18.9632 Z18.1"\\
+    W wyjściowych plikach znajdowały się jedynie prawidłowe kody, a format zapisu parametrów był zgodny z ich prawidłowym zapisem.
+  \section{Analiza wizualna wygenerowanych ruchów sondy}
+    Wygenerowany wykres przy użyciu biblioteki Matplotlib na podstawie pliku wyjściowego powinien odwzorowywać kształtem 
+    wejściowy model 3D. Obszary zaznaczone na szaro powinny pokrywać się z tymi wygenerowanymi do wizualizacji drzewa czwórkowego.
+    Na załączonym rysunku bardzo wyraźnie widać kształty poszczególnych elementów, z których składa się płyta główna. Badane obszary 
+    znajdują się na różnych wysokościach, które odpowiadają tym w prawdziwym modelu obiektu. Dodatkowo obszary badań pokrywają się z tymi 
+    na rysunku wizualizującym drzewo czwórkowe.
+    \begin{figure}[!htbp]
+      \begin{center}
+    \centering
+    \includegraphics[scale=0.3]{\ImgPath/rys/ATX_side_mpl.png}
+    \end{center}
+      \caption{Wizualizacja obszaru pokrycia przez ruchy sondy o bardzo małej średnicy}
+      \label{ATXSrmap}
+    \end{figure}
+    \clearpage
+  \section{Testy na fizycznym urządzeniu}
+    Ze względu na duże podobieństwo skanera pola bliskiego do drukarki 3D, można na niej testować wyjściowy plik. Urządzeniem jakie zostało użyte do testów jest model 
+    drukarki 3D o nazwie "Anycubic i3 Mega". W celu przetestowania wygenerowanego G-code, należy wykonać 
+    następujące kroki:
+    \begin{itemize}
+      \item Zapisać plik w formacie *.gcode na karcie pamięci SD
+      \item Umieścić kartę w urządzeniu
+      \item Włączyć urządzenie i przesunąć głowicę w położenie zerowe
+      \item Uruchomić wykonanie kodu poprzez wybranie opcji print
+    \end{itemize} 
+    Po uruchomieniu kodu, obserwowałem ruchy głowicy (w jej miejscu w skanerze pola bliskiego znajduje się sonda). Jej ruchy odzwierciedlały te wygenerowane w formie obrazu 
+    oraz naśladowały kształt rzeczywistej płyty głównej ATX.
+    \begin{figure}[!htbp]
+      \begin{center}
+    \centering
+    \includegraphics[scale=0.135]{\ImgPath/rys/drukarka.png}
+    \end{center}
+      \caption{Urządzenie testowe, drukarka 3D Anycubic i3 Mega}
+      \label{drukarka}
+    \end{figure}
+    \clearpage
+  \section{Podsumowanie fazy testów}
+    Biorąc pod uwagę, że wszystkie test zakończyły się wynikiem pozytywnym, mogę uznać fazę testów jako sukces. Potwierdza ona poprawność działania programu i pozwala na 
+    dalsze wykorzystanie plików wyjściowych w innym oprogramowaniu lub w rzeczywistych maszynach.
+
+\chapter{Wyniki i wnioski}
+    Wynikiem opisanej tutaj pracy jest działające narzędzie, które pozwala na poszerzenie możliwości działania realnych urządzeń. Na podstawie modelu 
+    obiektu 3D pozwala ono na wygenerowanie ścieżki dla sondy pola bliskiego i jej zapis w formacie akceptowanym przez skaner pola bliskiego. 
+    W takim wypadku warto zwrócić uwagę na fakt tego, jak ważne jest odpowiednie oprogramowanie. Samo urządzenie może udostępniać dużą funkcjonalność, 
+    ale część z niej jest dostępna dopiero po tym jak zostanie właściwie zaprogramowana.\\
+    Jest to bardzo ważny wniosek, gdyż nie można lekceważyć żadnej ze składowych projektu. Tak jak w przypadku skanera pola bliskiego bez oprogramowania 
+    wyznaczającego ruchy jego sondy, staje się on bardzo ograniczony w użytkowaniu. Dodatkowo bardzo ważną rzeczą jest definiowanie prostych, spójnych i 
+    stabilnych standardów komunikacji. Zadanie które zostało zrealizowane w tej pracy stało by się zdecydowanie trudniejsze, gdyby nie fakt posiadania opisanych
+    formatów zapisu modeli 3D (STL) czy sterowania urządzeniami (G-code).\\
+    To wszystko sprawia, że wartością omawianej tu pracy jest nie tylko działająca aplikacja, ale także wiedza jak postępować w trakcie realizacji złożonych projektów 
+    tak, by zminimalizować nakład pracy i czasu, a także umożliwić maksymalne wykorzystanie potencjału tego nad czym pracujemy.
 
 
 
