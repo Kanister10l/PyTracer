@@ -19,6 +19,7 @@
 \usepackage{verbatim}
 \usepackage{indentfirst}
 \usepackage[pdftex]{hyperref}
+\usepackage{listings}
 
 
 % rozmaite polecenia pomocnicze
@@ -61,7 +62,7 @@
 
 \opiekun{dr inż. Bartosz Chaber}
 %\konsultant{prof. Dzielny Konsultant}  % opcjonalnie
-\terminwykonania{1 lutego 2020} % data na oświadczeniu o samodzielności
+\terminwykonania{31 stycznia 2020} % data na oświadczeniu o samodzielności
 \rok{2020}
 
 
@@ -99,39 +100,49 @@
 % Wstęp
 %-----------------
 \chapter{Wstęp}
+  Dostępny na wydziale Elektrycznym Politechniki Warszawskiej skaner pola bliskiego jest bardzo interesującym 
+  urządzeniem. Zbudowany jest on na podstawie drukarki 3D. Jednak w celu wykonywania pomiarów dysza wraz z 
+  elementami odpowiedzialnymi za podawanie i podgrzewanie tworzyw sztucznych została zastąpiona sondą pola bliskiego. 
+  Dzięki tak podobnej budowie do popularnych urządzeń jakimi są drukarki 3D, sterowany jest on za pomocą G-code.
+  G-code jest językiem opisującym zachowanie maszyny, tak by możliwe było jej pełne sterowanie.
+  W przypadku chęci wydrukowania przedmiotu za pomocą drukarki, na bazie istniejącego modelu 3D obiektu 
+  jesteśmy w stanie stworzyć przy pomocy odpowiedniego oprogramowania zwanego "Slicer" G-code realizujący nasz druk.
+  Jednak ruchy sondy w przestrzeni nad badanym obiektem mają inny charakter od tych w drukarce, 
+  stąd potrzeba stworzenia programu realizującego to zadanie.\\
+  Właśnie to wyzwanie zdecydowałem się podjąć w ramach opisanej tutaj pracy.
 
-  \section{Cel i zakres pracy}
-    \subsection{Cel pracy}
-      Celem pracy jest opracowanie algorytmu wyznaczającego ścieżkę sondy pola bliskiego, 
-      która pozwoli na pomiar obiektów trójwymiarowych o zróżnicowanej geometrii.
-      Aktualne rozwiązanie pozwala jedynie na badanie obiektów będących jedynie płaską 
-      płytką bez dodatkowych elementów zmieniających wysokość obiektu.
-      Problemem, który staram się rozwiązać jest 
-      \begin{itemize}
-        \item zniesienie wymogu kształtu badanego obiektu
-      \end{itemize}
-      W przypadku pomiaru pola bliskiego elementy badane muszą być włączone w ich normalnym stanie
-      podczas całego procesu ich badania. Z tego powodu usunięcie elementów, które zmieniają geometrię
-      badanego obiektu w celu zachowania tradycyjnej ścieżki sondy jest nie możliwe.
-      Takie ograniczenie bardzo mocno zawęża użyteczność samego skanera, co staram się rozwiązać poprzez analizę
-      trójwymiarowego modelu i na jego podstawie wyznaczyć ścieżkę sondy tak, by mogła przeprowadzić pomiary
-      na zdefiniowanej przez użytkownika odległości od obiektu.
+  \section{Cel pracy}
+    Celem pracy jest opracowanie algorytmu wyznaczającego ścieżkę sondy pola bliskiego, 
+    która pozwoli na pomiar obiektów trójwymiarowych o zróżnicowanej geometrii.
+    Aktualne rozwiązanie pozwala jedynie na badanie obiektów będących jedynie płaską 
+    płytką bez dodatkowych elementów zmieniających wysokość obiektu.
+    Problemem, który staram się rozwiązać jest 
+    \begin{itemize}
+      \item zniesienie wymogu kształtu badanego obiektu
+    \end{itemize}
+    W przypadku pomiaru pola bliskiego elementy badane muszą być włączone w ich normalnym stanie
+    podczas całego procesu ich badania. Z tego powodu usunięcie elementów, które zmieniają geometrię
+    badanego obiektu w celu zachowania tradycyjnej ścieżki sondy jest nie możliwe.
+    Takie ograniczenie bardzo mocno zawęża użyteczność samego skanera, co staram się rozwiązać poprzez analizę
+    trójwymiarowego modelu i na jego podstawie wyznaczyć ścieżkę sondy tak, by mogła przeprowadzić pomiary
+    na zdefiniowanej przez użytkownika odległości od obiektu.
 
-    \subsection{Zakres pracy}
-      Zakres pracy obejmuje analizę postawionego problemu oraz dobór odpowiednich technologii pozwalających 
-      na optymalne (pod względem czasu realizacji oraz wydajności algorytmu) rozwiązanie problemu.
-      \\
-      Po dobraniu technologii w której zaimplementowany zostanie algorytm, należy zaplanować 
-      następujące komponenty rozwiązania:
-      \begin{itemize}
-        \item analiza i transformacja obiektu 3D opisującego badany przedmiot
-        \item wyznaczanie ścieżki na podstawie otrzymanego w poprzednim kroku obiektu 3D
-        \item translacja otrzymanego rozwiązania na język zrozumiały przez skaner
-        \item (opcjonalnie) wizualizacja poszczególnych etapów działania algorytmu
-      \end{itemize}
-      Po zakończeniu procesu tworzenia algorytmu, należy przeprowadzić fazę testów oraz jako podsumowanie, 
-      przeanalizować otrzymane rezultaty wraz z wyciągnięciem z nich wniosków.
-  
+  \section{Zakres pracy}
+    Zakres pracy obejmuje analizę postawionego problemu oraz dobór odpowiednich technologii pozwalających 
+    na optymalne (pod względem czasu realizacji oraz wydajności algorytmu) rozwiązanie problemu.
+    \\
+    Po dobraniu technologii w której zaimplementowany zostanie algorytm, należy zaplanować 
+    następujące komponenty rozwiązania:
+    \begin{itemize}
+      \item analiza i transformacja obiektu 3D opisującego badany przedmiot
+      \item wyznaczanie ścieżki na podstawie otrzymanego w poprzednim kroku obiektu 3D
+      \item translacja otrzymanego rozwiązania na język zrozumiały przez skaner
+      \item (opcjonalnie) wizualizacja poszczególnych etapów działania algorytmu
+    \end{itemize}
+    Po zakończeniu procesu tworzenia algorytmu, należy przeprowadzić fazę testów oraz jako podsumowanie, 
+    przeanalizować otrzymane rezultaty wraz z wyciągnięciem z nich wniosków.
+
+\chapter{Faza projektowania aplikacji}
   \section{Opis Architektury}
     Omawiany algorytm posiada bardzo wyraźne komponenty. Biorąc pod uwagę wymagania 
     zdecydowałem się na wydzielenie z całości trzech elementów. 
@@ -147,7 +158,6 @@
     wykonuje swoje zadanie. Dodatkowo takie założenie "modularnej" budowy pozwala mi przyjąć, 
     że w przypadku zmieniających się wymagań podczas rozwoju aplikacji, będę mógł w sposób 
     wymagający minimalnego nakładu pracy dodać lub zmodyfikować komponenty tak, by zapewnić nową funkcjonalność.
-
     \begin{figure}[!htbp]
       \begin{center}
     \centering
@@ -156,54 +166,118 @@
       \caption{Schemat architektury algorytmu}
       \label{schematArchitektury}
     \end{figure}
+    \clearpage
 
-\chapter{Technologie i narzędzia}
-  \section{Język programowania}
-    Python jest niezwykle popularnym językiem wysokiego poziomu.
-    Jest to język interpretowany. Oznacza to, że kod nie wymaga procesu kompilacji 
-    do działania lecz każda jego instrukcja jest na bieżąco wykonywana przez wirtualną maszynę (pvm).
-    Zdecydowałem się na ten język programowania ze względu na szerokie wsparcie w postaci 
-    zewnętrznych bibliotek oraz możliwość przenoszenia kodu bez potrzeby ponownej jego kompilacji 
-    w przypadku zmiany architektury systemu operacyjnego. Pierwszy powód zawdzięczam ogromnej 
-    popularności Python-a oraz bardzo aktywnej społeczności, która udziela się w rozwój środowiska.
-    Drugi z kolei jest efektem tego, że Python jest językiem interpretowanym. Oznacza to, że wszędzie tam 
-    gdzie istnieje interpreter tego języka, jestem w stanie uruchomić przygotowany przeze mnie kod
-    (po wcześniejszym zainstalowaniu wymaganych bibliotek).
+  \section{Sposób uruchomienia aplikacji}
+    W celu ułatwienia korzystania z programu zdecydowałem się na konteneryzację programu. Takie rozwiązanie pozwoli mi na 
+    zminimalizowanie wymogu przygotowania środowiska uruchomienia aplikacji. W przypadku użycia kontenerów, środowisko
+    budowane jest bez wymogu ingerencji użytkownika, co pozwala zmniejszyć próg wejścia w korzystanie z programu.
+    Co więcej, takie środowisko jest budowane niezależnie od konfiguracji maszyny gospodarza. Pozwala to na zwiększenie
+    elastyczności wymagań do działania. Warto też wziąć pod uwagę aspekt bezpieczeństwa, gdyż kontener jest wyizolowanym bytem, 
+    który w przypadku awarii albo potencjalnego ataku uniemożliwi/utrudni ingerencję w maszynę gospodarza.
+    Kolejnym ułatwieniem jakie zapewnia konteneryzacja, jest bardzo łatwe zdalne uruchamianie obliczeń.
 
-  \section{Edytor tekstu}
-    W przypadku edytora tekstu zdecydowałem się na użycie programu 
-    Visual Studio Code. Jest to darmowy program o otwartym kodzie źródłowym, który poza edycją tekstu 
-    pozwala także na przeprowadzanie procesu debugging-u (procesu znajdowania i rozwiązywania błędów w kodzie),
-    tworzenie zadań (zestaw instrukcji wykonywanych podczas egzekucji zadania) czy wspomaganie pisania kodu 
-    (kolorowanie składni, szablony często używanych struktur, wskazywanie potencjalnych błędów).
-    Dodatkowo ten edytor tekstu pozwala na instalację wtyczek stworzonych przez społeczność, 
-    co pozwala na dalsze ułatwienie pisania kodu. Jak można dostrzec w tabeli \ref{srodowiskoProcenty},
-    Visual Studio Code jest aktualnie najbardziej popularnym środowiskiem tworzenia oprogramowania, 
-    dzięki czemu istnieje bardzo duża baza wiedzy na temat problemów jakie można napotkać podczas
-    korzystania z tego programu.
+  \section{Projektowanie sposobu komunikacji z użytkownikiem}
+    Podczas budowy aplikacji, z której korzystać będą użytkownicy musimy poważnie rozważyć sposób, w jaki będą oni 
+    dokonywać interakcji z naszą aplikacją. Z tego powodu rozważyłem wiele czynników, które doprowadziły mnie 
+    do finalnej decyzji na temat formy interakcji. Najważniejsze czynniki jakie wziąłem pod uwagę to:
+    \begin{itemize}
+      \item Zaawansowanie techniczne użytkownika docelowego
+      \item Ilość informacji przekazywana podczas działania aplikacji
+      \item Sposób uruchomienia aplikacji
+      \item Ilość wymaganych ingerencji użytkownika podczas działania aplikacji
+      \item Czas wykonywania
+      \item Czas tworzenia aplikacji
+    \end{itemize}
+
+    \begin{subsection}{Zaawansowanie techniczne użytkownika docelowego}
+      W przypadku omawianej tu aplikacji, skierowana jest ona do zaawansowanego technicznie użytkownika. Grupą docelową 
+      są użytkownicy o wysokim stopniu zaawansowania w posługiwaniu się oprogramowaniem komputerowym oraz sprzętem elektronicznym.
+      Taka grupa docelowa pozwoliła mi dodać do rozważań aplikację bez interfejsu graficznego.
+    \end{subsection}
+    
+    \begin{subsection}{Ilość informacji przekazywana podczas działania aplikacji}
+      Podczas analizy tego, co aplikacja przekazuje użytkownikowi podczas jej działania udało mi się ustalić,
+      że ogranicza się to jedynie do postępu procentowego poszczególnych zadań. Takie zadanie jestem w stanie w bardzo efektywnie
+      zaimplementować w formie tekstowej, co dodatkowo przemawia za aplikacją pozbawioną interfejsu graficznego.
+    \end{subsection}
+
+    \begin{subsection}{Sposób uruchomienia aplikacji}
+      Biorąc pod uwagę wybrany sposób uruchomienia aplikacji (konteneryzacja), utworzenie prostego i wygodnego interfejsu graficznego
+      staje się bardzo skomplikowanym zadaniem. Na tym etapie jestem bardzo przekonany do utworzenia aplikacji tekstowej, lecz by uzyskać 
+      pewność, że ten wybór jest słuszny należy rozważyć wszystkie możliwości. W niektórych przypadkach może zaistnieć sytuacja, gdzie pojedyncze 
+      wymaganie wymusza na twórcy specyficzne rozwiązanie.
+    \end{subsection}
+
+    \begin{subsection}{Ilość wymaganych ingerencji użytkownika podczas działania aplikacji}
+      Analizując proces, który realizuje omawiana aplikacja, łatwo udało mi się dostrzec, że wszystkie informacje wymagane do 
+      zdefiniowania pracy programu, są możliwe do zdefiniowania jeszcze przed uruchomieniem aplikacji.
+      Pozwala nam to wziąć pod uwagę aplikację, która bazuje na pliku konfiguracyjnym ładowanym podczas uruchomienia programu.
+      Takie rozwiązanie ma dodatkową przewagę, którą jest wysoka powtarzalność przy minimalnym nakładzie pracy.
+      By uzyskać jednakowy wynik pomiędzy uruchomieniami programu, należy jedynie uruchomić go ponownie w takim samym środowisku 
+      (jednakowy plik konfiguracyjny oraz pliki wejściowe).
+    \end{subsection}
+
+    \begin{subsection}{Czas wykonywania}
+      Ze względu na wysoki stopień zróżnicowania złożoności wykonywanych obliczeń spowodowaną przez:
+      \begin{itemize}
+        \item Skomplikowanie geometryczne modelu 3D
+        \item Dokładność wykonania modelu 3D (ilość zawartych szczegółów)
+        \item Zróżnicowanie konfiguracji zdefiniowanej przez użytkownika
+      \end{itemize}
+      czas wykonania programu może różnić się o kilka rzędów wielkości. W takim przypadku nie mogę oczekiwać na ciągłą uwagę użytkownika i 
+      na jego ewentualną reakcję w celu wprowadzenia dodatkowych informacji. Tak specyficzne wymagania wymuszają na mnie implementację 
+      aplikacji opartej na pliku konfiguracyjnym.
+    \end{subsection}
+
+    \begin{subsection}{Czas tworzenia aplikacji}
+      Tworzenie graficznego interfejsu użytkownika jest bardzo skomplikowanym i czasochłonnym procesem. W przypadku gdy nie jest on wymagany/zalecany 
+      mądrym posunięciem może być rezygnacja z jego implementacji. Dodatkowo analizując skomplikowanie logiczne innych komponentów aplikacji, skłaniam się 
+      ku odstąpienia od projektowania graficznego interfejsu użytkownika.
+    \end{subsection}
+
+    \begin{subsection}{Podsumowanie}
+      Podsumowując wszystkie powyższe rozważania, zdecydowałem się na aplikację o interfejsie tekstowym z plikiem konfiguracyjnym.
+      Taka kombinacja pozwala na bardzo szeroki wachlarz zastosowań. Bardzo wygodnym rozwiązaniem w takiej konfiguracji może być 
+      zdalne uruchomienie aplikacji w kontenerze. Uruchomienia w postaci "włącz i zapomnij" są szczególnie efektywne w przypadku 
+      obliczeń, które mogą trwać bardzo długo, gdzie po pewnym okresie czasu czytamy logi zapisane przez program oraz pliki wyjściowe będące efektem jego działania.      
+    \end{subsection}{Podsumowanie}
+
+
+
+  \section{Projektowanie komponentów}
+    Ze względu na charakterystyczną budowę aplikacji zdecydowałem się na iteracyjny model wytwarzania oprogramowania.
+    Dzięki bardzo wyraźnemu rozgraniczeniu komponentów aplikacji byłem w stanie od samego początku
+    wyznaczyć sobie cele, wymagania i zakres prac dla każdej iteracji zawierającej pojedynczy komponent.
+    \\
+    Na początku każdej iteracji przeprowadzałem następujące zadania:
+    \begin{itemize}
+      \item Analiza wymagań komponentów wejściowych oraz wyjściowych
+      \item Projekt początku oraz końca przepływu pracy komponentu
+      \item Analiza wymagań jakościowych dla wykonywanych operacji
+      \item Analiza w kierunku optymalnej metody obróbki danych
+      \item Podsumowanie wyciągniętych wniosków
+      \item Stworzenie wysokopoziomowego przepływu pracy komponentu biorąc pod uwagę wszystkie założenia stworzone podczas poprzednich kroków
+    \end{itemize}
+
     \begin{figure}[!htbp]
       \begin{center}
-        \centering
-          \begin{tabular}{|c|c|}
-            \hline
-            Nazwa Programu & Procent Deklarujących \\ \hline
-            Visual Studio Code & 50.7\% \\ \hline
-            Visual Studio & 31.5\% \\ \hline
-            Notepad++ & 30.5\% \\ \hline
-            IntelliJ & 25.4\% \\ \hline
-            Vim & 25.4\% \\ \hline
-            Sublime Text & 23.4\% \\ \hline
-            Android Studio & 16.9\% \\ \hline
-            Eclipse & 14.4\% \\ \hline
-            PyCharm & 13.4\% \\ \hline
-            Atom & 13.3\% \\
-            \hline
-          \end{tabular}
-      \end{center}
-      \caption{Procent developerów deklarujących korzystanie z danego środowiska w 2019r. \cite{StackInsight}}
-      \label{srodowiskoProcenty}
+    \centering
+    \includegraphics[scale=0.4]{\ImgPath/rys/BudowaDrzewa.png}
+    \end{center}
+      \caption{Fragment przepływu pracy jednego z komponentów realizujący budowę drzewa czwórkowego}
+      \label{budowaDrzewa}
     \end{figure}
+    \clearpage
 
+    Na powyższym rysunku znajduje się wysokopoziomowy opis procesu jaki zachodzi podczas budowania drzewa czwórkowego.
+    Dzięki takiemu zapisowi planu komponentu, byłem w stanie zdecydowanie szybciej przystąpić do tworzenia kodu.
+    Także podczas samego procesu pisania miałem bardzo wyraźnie zarysowany plan, według którego powinienem postępować.
+    W przypadku próby programowania bez wcześniejszej analizy problemu oraz szkicu jego rozwiązania, bardzo
+    łatwo jest popełnić błąd merytoryczny. Nie jest to na tyle wielki problem, jeśli jesteśmy w stanie zlokalizować
+    błąd w rozsądnej ilości czasu, lecz jeśli zostanie on ujawniony dopiero gdy inne komponenty zaczną korzystać 
+    z jego wyników, to może to zaważyć na powodzeniu projektu. Z tego powodu planowanie, nawet w dość uproszczonej formie,
+    jest zawsze obowiązkowym krokiem, który wykonuję na samym początku pracy.
 
 \chapter{Komponenty algorytmu}
 
@@ -241,10 +315,254 @@
         \item normalizacja mapy wysokości
       \end{itemize}
 
+    \section{Logika algorytmu}
+      \subsection{Opis}
+        Ten komponent ma za zadanie wykonanie obliczeń, które na podstawie otrzymanej mapy wysokości 
+        zwrócą listę kroków potrzebnych do wykonania przez skaner, tak by w optymalny sposób przeprowadzić 
+        badanie obiektu. Zdecydowałem się na zastosowanie rozwiązania, które bazuje na podziale głównego problemu 
+        obliczeniowego na mniejsze, gdzie znalezienie rozwiązania pod problemu mającego charakter optymalny doprowadzi 
+        mnie do optymalnego rozwiązania problemu głównego. W przypadku omawianej tu analizy mapy wysokości (którą można 
+        przedstawić jako płaski obraz) zainspirowałem się metodami kompresji obrazów. Najbardziej przyciągnęło moją uwagę 
+        kompresja wykorzystująca drzewo czwórkowe (ang. Quad Tree). Polega ona na budowaniu drzewa czwórkowego tak długo, 
+        aż wszystkie obszary znajdujące się na węzłach nie spełnią warunku końcowego. W przypadku obrazu jest to błąd mediany 
+        koloru pikseli.\\
+        Starając się uformować w odpowiedni sposób dane, zauważyłem że warunkiem zatrzymania budowy drzewa mógł by być odsetek 
+        punktów będących najwyższym poziomem danej powierzchni. Taka definicja pozwala na zgodne rzeczywistością opisanie 
+        warunków jakościowych dla obiektów znajdujących się w trój wymiarowej przestrzeni.\\
+        Następnie wiedząc już jak wygląda podział problemu wyznaczenia ścieżki, rozpocząłem analizę problemu wyznaczenia ścieżki 
+        w każdym z liści drzewa. Biorąc pod uwagę fakt, że z definicji algorytmu prowadzącego budowę drzewa każdy liść jest 
+        traktowany jako płaski element w przestrzeni o jednakowej wysokości nad powierzchnią skanera, zdecydowałem się, że 
+        najlepszym oraz najprostszym rozwiązaniem będzie wyznaczenie siatki punktów pomiarowych i poprowadzenie przez nie 
+        ścieżki będącej linią łączącą wszystkie punkty siatki. W tym miejscu należy zauważyć wadę takiego rozwiązania, gdyż 
+        w obszarze jednego liścia drzewa czwórkowego pewne jest, że sonda nie spotka przeszkody tylko jeżeli będzie oddalona 
+        od krawędzi obszaru co najmniej o swój promień. To zaowocuje w braku możliwości pokrycia w 100\% badanego obiektu, lecz 
+        rozważając rozmiar sondy (około 3.5mm) jestem w stanie dopuścić takie odstępstwo.
 
+      \subsection{Podział na elementy kluczowe}
+        Rozpatrując opisaną wcześniej metodę rozwiązania problemu wyznaczania ścieżki na podstawie mapy wysokości, 
+        mogę w prosty sposób wyłonić dwa kluczowe elementu logiki algorytmu:
+        \begin{itemize}
+          \item Budowa i przechodzenie drzewa
+          \item Wyznaczanie ścieżki dla liści drzewa
+        \end{itemize}
+        Z tego powodu komponent odpowiadający za logikę algorytmu będzie się składał z dwóch wyżej wymienionych modułów.
+        Taki podział pozwoli mi na wydzielenie samodzielnych modułów, które mogę implementować i testować niezależnie od siebie.
+        Pozwoli mi to na zmniejszenie ilości zależności, które mogą wprowadzić kolejną warstwę komplikacji, czego podczas 
+        implementacji staram się uniknąć.
 
+    \section{Zapis wyników}
+      \subsection{Opis}
+        Komponent zapisu wyników jest ostatecznym elementem pracy programu. To właśnie on odpowiada za zapis 
+        danych przygotowanych przez działanie aplikacji w zrozumiałym dla urządzenia docelowego formacie. W przypadku 
+        omawianego tutaj skanera pola bliskiego jest to G-code, którego przykład zamieszczam poniżej:
+        \begin{lstlisting}
+          G90
+          G21
+          G0 X0.0 Y0.0 Z40.5
+          G0 X1.89 Y1.81 Z40.5
+          G0 X1.89 Y1.81 Z1.0
+          G4
+        \end{lstlisting}
+        Dodatkowo postanowiłem w celach poglądowych zapisywać obrazy, które pozwolą na prostą interpretację mapy wysokości 
+        oraz zbudowanego na jej podstawie drzewa czwórkowego. Zestaw trzech plików wyjściowych:
+        \begin{itemize}
+          \item Opis ścieżki sondy za pomocą G-code
+          \item Wizualizacja mapy wysokości obiektu
+          \item Wizualizacja drzewa czwórkowego
+        \end{itemize}
+        będą stanowiły kompletne wyjście programu. Pozwolą one na kompletną analizę działania programu tak by w przypadku 
+        skomplikowanego modelu obiektu, móc sprawdzić zachowanie sondy przed uruchomieniem skanera.
+        Dodatkowo wizualizacja działania programu będzie znacznym ułatwieniem podczas testowania i procesu usuwania błędów, 
+        gdyż pozwoli na szybką lokalizację ewentualnych błędów w zanalizowanym obiekcie.
 
+\chapter{Implementacja kodu}
+  \section{Użyte narzędzia i technologie}
+    \subsection{Język programowania}
+      Python jest niezwykle popularnym językiem wysokiego poziomu.
+      Jest to język interpretowany. Oznacza to, że kod nie wymaga procesu kompilacji 
+      do działania lecz każda jego instrukcja jest na bieżąco wykonywana przez wirtualną maszynę (pvm).
+      Zdecydowałem się na ten język programowania ze względu na szerokie wsparcie w postaci 
+      zewnętrznych bibliotek oraz możliwość przenoszenia kodu bez potrzeby ponownej jego kompilacji 
+      w przypadku zmiany architektury systemu operacyjnego. Pierwszy powód zawdzięczam ogromnej 
+      popularności Python-a oraz bardzo aktywnej społeczności, która udziela się w rozwój środowiska.
+      Drugi z kolei jest efektem tego, że Python jest językiem interpretowanym. Oznacza to, że wszędzie tam 
+      gdzie istnieje interpreter tego języka, jestem w stanie uruchomić przygotowany przeze mnie kod
+      (po wcześniejszym zainstalowaniu wymaganych bibliotek).
+    
+    \subsection{Wejściowy format danych}
+      Ze względu na podobieństwo skanera pola bliskiego do drukarki 3D, formatem wejściowym opisującym 
+      model 3D obiektu jest plik STL. Jest to format dominujący w obszarze druku 3D. Pozwala to na 
+      dostęp do wielu gotowych modeli, bardzo często upublicznianych na licencji "Public Domain Dedication", 
+      która pozwala na pełne prawa do kopiowania, modyfikacji, rozprowadzania i wykonywania wszelkich prac 
+      bez potrzeby wyrażania zgody twórcy. Na tej podstawie zdecydowałem się wybrać testowy model 3D.\\
+      Jako format pliku konfiguracyjnego wybrałem JSON. Jest to otwarty standard zapisu danych w formie 
+      tekstowej. Jest to format, który jest w pełni czytelny dla człowieka, co pozwala na edycję konfiguracji 
+      uruchomienia programu bez konieczności nauki danego schematu zapisu. Dodatkowo jest on wspierany przez 
+      większość języków programowania, dzięki czemu bardzo łatwo jest go przetwarzać na postać zgodną z 
+      używanym językiem. Przykład danych zapisanych w formacie JSON:
+      \begin{lstlisting}
+        {
+          "numer": 10,
+          "tekst": "Hello",
+          "tablica": [
+            "Hello", "World", "!!!"
+          ],
+          "obiekt": {
+            "jestem": "obiektem"
+          }
+        }
+      \end{lstlisting}
 
+    \subsection{Wyjściowy format danych}
+      Dane zawierające ścieżkę na wyjściu programu zapisywane są do pliku w formacie G-code. G-code jest 
+      językiem opisującym jak powinny zachować się sterowana maszyna. Gotowy plik w tym formacie przekazywany jest 
+      do kontrolera i to on analizując go linia po linii steruje komponentami maszyny. W przypadku skanera 
+      pola bliskiego są to silniki krokowe odpowiadające za przemieszczanie sondy w polu roboczym oraz 
+      sonda wykonująca pomiar.\\
+      Do zapisu obrazów wykorzystałem pliki w formacie PNG (Portable Network Graphics). Jest to bardzo popularny format zapisu 
+      grafiki rastrowej. Wspiera on bezstratną kompresję danych.
+
+    \subsection{Narzędzie do konteneryzacji}
+      Jako narzędzie do konteneryzacji zdecydowałem się na użycie Docker-a. To oprogramowanie pozwala na 
+      uruchamianie programów w odizolowanych kontenerach. Poza samym ich uruchomieniem pozwala także na komunikację 
+      między kontenerami. Pozwala to na tworzenie aplikacji niezależnych od środowiska uruchomienia na maszynie
+      i bardzo wygodne zdalne uruchamianie kodu. W celu utworzenia prostego kontenera możemy skorzystać z wielu 
+      istniejących gotowych konfiguracji, albo napisać własnoręcznie plik konfiguracyjny (Dockerfile) opisujący 
+      jak ma być zbudowany kontener.
+
+    \subsection{Edytor tekstu}
+      W przypadku edytora tekstu zdecydowałem się na użycie programu 
+      Visual Studio Code. Jest to darmowy program o otwartym kodzie źródłowym, który poza edycją tekstu 
+      pozwala także na przeprowadzanie procesu debugging-u (procesu znajdowania i rozwiązywania błędów w kodzie),
+      tworzenie zadań (zestaw instrukcji wykonywanych podczas egzekucji zadania) czy wspomaganie pisania kodu 
+      (kolorowanie składni, szablony często używanych struktur, wskazywanie potencjalnych błędów).
+      Dodatkowo ten edytor tekstu pozwala na instalację wtyczek stworzonych przez społeczność, 
+      co pozwala na dalsze ułatwienie pisania kodu. Jak można dostrzec w tabeli \ref{srodowiskoProcenty},
+      Visual Studio Code jest aktualnie najbardziej popularnym środowiskiem tworzenia oprogramowania, 
+      dzięki czemu istnieje bardzo duża baza wiedzy na temat problemów jakie można napotkać podczas
+      korzystania z tego programu.
+      \begin{figure}[!htbp]
+        \begin{center}
+          \centering
+            \begin{tabular}{|c|c|}
+              \hline
+              Nazwa Programu & Procent Deklarujących \\ \hline
+              Visual Studio Code & 50.7\% \\ \hline
+              Visual Studio & 31.5\% \\ \hline
+              Notepad++ & 30.5\% \\ \hline
+              IntelliJ & 25.4\% \\ \hline
+              Vim & 25.4\% \\ \hline
+              Sublime Text & 23.4\% \\ \hline
+              Android Studio & 16.9\% \\ \hline
+              Eclipse & 14.4\% \\ \hline
+              PyCharm & 13.4\% \\ \hline
+              Atom & 13.3\% \\
+              \hline
+            \end{tabular}
+        \end{center}
+        \caption{Procent developerów deklarujących korzystanie z danego środowiska w 2019r. \cite{StackInsight}}
+        \label{srodowiskoProcenty}
+      \end{figure}
+
+    \subsection{Edytor modeli 3D}
+      Do podglądu plików opisujących model trójwymiarowych obiektów użyłem programu MeshLab. Jest to darmowe 
+      oprogramowanie, które wspiera podgląd i edycję plików STL (wejściowy format plików dla implementowanego programu). 
+      Zdecydowałem się na jego użycie ze względu na prostotę obsługi w wymaganym przeze mnie zakresie oraz jego wieloplatformowość.
+      Możliwy jest on do uruchomienia na większości dostępnych urządzeń stacjonarnych oraz mobilnych.
+
+  \section{Implementacja kodu}
+    \subsection{LangEngine}
+      Implementację kodu rozpocząłem od wytworzenia modułu odpowiadającego za zapis kodu w postaci G-code. 
+      Początkowo przeanalizowałem wymagane do prawidłowego działania skanera kodów. Listą niezbędnych kodów 
+      okazało się być:
+      \begin{itemize}
+        \item G0 - rapid move (szybki ruch)
+        \item G1 - linear move (ruch liniowy)
+        \item G4 - pause (w przypadku skanera jest to kod odpowiedzialny za wykonanie pomiaru)
+        \item G21 - set milimeter (ustawienie jednostki odległości jako milimetr)
+        \item G90 - set absolute (ustawienie bezwzględnego zapisu pozycji)
+      \end{itemize}
+      Dodatkowo zdecydowałem się na implementację dwóch dodatkowych kodów na wypadek dalszego rozwoju programu:
+      \begin{itemize}
+        \item G28 - home (przejście sondy do pozycji zerowej X=0 Y=0 Z=0)
+        \item G91 - set relative (ustawienie względnego zapisu pozycji)
+      \end{itemize}
+      Mechanizm działania tego modułu polega na zapisywaniu listy kroków potrzebnych do wykonania, by po zakończeniu 
+      zapisać je w pliku tekstowym w formacie G-code. Kody generowane podczas pracy posiadają dodatkowe parametry, 
+      tak jak na przykład pozycja do której ma zostać wykonany ruch:
+      \begin{lstlisting}
+        G0 X2.4367 Y49.64 Z1.0
+      \end{lstlisting}
+      W celu umożliwienia zapisu kodów bez argumentów należało dodać obsługę ich wypełniania podczas ich wywołania. 
+      Biorąc też pod uwagę, że odmiana języka jest zdefiniowana w jego pliku konfiguracyjnym, należało zastosować 
+      mechanizm usuwania nie potrzebnych zmiennych oraz nadawania wartości tym zdefiniowanym. Taką właśnie rolę 
+      pełni ukazany poniżej kod:
+      \noindent
+      \begin{lstlisting}{language=python}
+def ReplaceVariable(self, handler, code, var, val):
+  if var in handler["variables"] and val is not None:
+    code = code.replace("%" + var, var + str(val))
+  else:
+    code = code.replace("%" + var, "")
+  return code
+      \end{lstlisting}
+      Posiadając mechanizm zapisu G-code rozpocząłem tworzenie innych modułów programu.
+    
+    \subsection{Engine3D}
+      Następnym krokiem podczas budowy programu była implementacja logiki analizy modeli 3D. Jak się potem okazało 
+      było to dość skomplikowane zadanie ze względu na dużą ilość obliczeń w przestrzeni trójwymiarowej.
+      Na początku postanowiłem znaleźć odpowiedni model, który mógł bym wykorzystać do dalszych prac.
+      Musiał on spełniać następujące wymagania:
+      \begin{itemize}
+        \item Rozmiar co najmniej kilkanaście centymetrów
+        \item Duże zróżnicowanie wysokości modelu
+        \item Odwzorowanie prawdziwego przypadku użycia (model obwodu drukowanego)
+      \end{itemize}
+      Moim wyborem został model płyty głównej ATX \cite{ATXMotherboard}, który spełniał wszystkie wymagania.
+      \begin{figure}[!htbp]
+        \begin{center}
+      \centering
+      \includegraphics[scale=0.4]{\ImgPath/rys/ATXmesh.png}
+      \end{center}
+        \caption{Widok modelu płyty głównej ATX w programie MeshLab}
+        \label{MeshLabATX}
+      \end{figure}
+      \clearpage
+      Posiadając model, który mogę wykorzystać rozpocząłem implementację logiki. Podczas tego procesu 
+      natchnąłem się na problem związany z wydajnością obliczeń. Model którego używałem podczas 
+      tworzenia kodu zawierał ponad 300 tysięcy trójkątów. Z tego powodu wyznaczanie wysokości przez 
+      iterację po wszystkich trójkątach była nie możliwa ze względu na czas wykonania. Zdecydowałem 
+      się na zastosowanie podziału trójkątów na klastry, które opisują jakie trójkąty znajdują się 
+      w danej części obszaru. Pozwala to zaoszczędzić bardzo dużo czasu ze względu na zmniejszenie 
+      ilości obiektów z którymi muszę sprawdzić przecięcie. Co więcej parametr opisujący ilość generowanych 
+      klastrów znajduje się w pliku konfiguracyjnym i może być dowolnie modyfikowany w zakresie <1, 2147483647>. 
+      Ograniczenie to jest związane z maksymalnym rozmiarem 32 bit-owej liczby całkowitej.
+      \noindent
+      \begin{lstlisting}
+def AssignClusters(self, polyNumber):
+    poly = self.my_mesh.points[polyNumber]
+    box = self.FindPolyBox(poly)
+    fromX = int((box[0] - self.Xmin) / self.clusterStep[0])
+    toX = int((box[1] - self.Xmin) / self.clusterStep[0])
+    fromY = int((box[2] - self.Ymin) / self.clusterStep[1])
+    toY = int((box[3] - self.Ymin) / self.clusterStep[1])
+    if toX == self.clusterBase:
+        toX -=1
+    if toY == self.clusterBase:
+        toY -=1
+    for x in range(fromX, toX + 1):
+        for y in range(fromY, toY + 1):
+            self.clusters[x*self.clusterBase + y].append(polyNumber)
+    
+def ClusterifyPolygons(self):
+    print("Assigning polygons to clusters")
+    to_do = len(self.polys)
+    bar = Bar('Calculating', max=to_do, suffix='%(percent)d%%')
+    for i in range(to_do):
+        self.AssignClusters(i)
+        bar.next()
+    bar.finish()
+      \end{lstlisting}
 
 
 
@@ -298,9 +616,10 @@
 \begin{thebibliography}{99}
 \addcontentsline{toc}{chapter}{Bibliografia}
 \bibitem{StackInsight}{https://insights.stackoverflow.com/survey/2019}
+\bibitem{ATXMotherboard}{https://www.thingiverse.com/thing:2444725}
 
 \end{thebibliography}
-
-\zakonczenie
+%Tutaj jest opinia i recenzja
+%\zakonczenie
 
 \end{document}
